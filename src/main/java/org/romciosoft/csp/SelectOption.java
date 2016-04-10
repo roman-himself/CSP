@@ -1,7 +1,7 @@
 package org.romciosoft.csp;
 
 class SelectOption<T> {
-    static enum Type {
+    enum Type {
         SEND, RECEIVE
     }
 

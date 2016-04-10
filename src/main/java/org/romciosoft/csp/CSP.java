@@ -46,7 +46,7 @@ public class CSP {
             }
         }
         Promise<SelectResult<T>> pro = Promise.<SelectResult<T>>newPromise(executor).perform();
-        for (SelectOption<T> option: selectOptions) {
+        for (SelectOption<T> option : selectOptions) {
             switch (option.type) {
                 case SEND:
                     option.getChannel().offerSender(option.value, pro);
