@@ -1,5 +1,6 @@
 package org.romciosoft.csp;
 
+import org.romciosoft.io.AsyncAction;
 import org.romciosoft.io.IOActionExecutor;
 import org.romciosoft.io.Promise;
 import org.romciosoft.monad.Maybe;
@@ -61,5 +62,16 @@ public class CSP {
 
     public static <T> SelectBuilder<T> select() {
         return new SelectBuilder<>();
+    }
+
+    public static <T> AsyncAction<ChannelHandle<T>> newChannel(int bufferSize) {
+        if (bufferSize == 0) {
+            return AsyncAction.unit(new UnbufferedChannel<T>().getHandle());
+        }
+        return BufferedChannel.bufferedChannel(bufferSize);
+    }
+
+    public static <T> AsyncAction<ChannelHandle<T>> newChannel() {
+        return newChannel(0);
     }
 }

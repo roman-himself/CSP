@@ -3,6 +3,7 @@ package org.romciosoft.csp;
 import org.romciosoft.data.IPersistentQueue;
 import org.romciosoft.data.PersistentQueue;
 import org.romciosoft.io.AsyncAction;
+import org.romciosoft.io.Promise;
 
 class BufferedChannel {
     private static class IOEvent<T> {
@@ -165,9 +166,44 @@ class BufferedChannel {
                     }
                 default:
                     return AsyncAction.wrap(() -> {
-                        throw new Exception();
+                        throw new AssertionError();
                     });
             }
         });
+    }
+
+    static <T> AsyncAction<ChannelHandle<T>> bufferedChannel(int bufferSize) {
+        if (bufferSize < 1) {
+            throw new IllegalArgumentException("buffer size must be at least one");
+        }
+        return exe -> () -> {
+            Channel<T> chIn = new UnbufferedChannel<>();
+            Channel<T> chOut = new UnbufferedChannel<>();
+            Channel<IOEvent<T>> toMiddle = new UnbufferedChannel<>();
+            Channel<T> toSender = new UnbufferedChannel<>();
+            Channel<Void> toReceiver = new UnbufferedChannel<>();
+            AsyncAction.fork(
+                    inProcessBody(toMiddle.getHandle().getSendPort(),
+                            toReceiver.getHandle().getReceivePort(),
+                            chIn.getHandle().getReceivePort()))
+                    .getIOAction(exe).perform();
+            AsyncAction.fork(
+                    outProcessBody(toMiddle.getHandle().getSendPort(),
+                            toSender.getHandle().getReceivePort(),
+                            chOut.getHandle().getSendPort()))
+                    .getIOAction(exe).perform();
+            AsyncAction.fork(
+                    middleProcessBody(
+                            new BufferProcessContext<>(
+                                    toMiddle.getHandle().getReceivePort(),
+                                    toSender.getHandle().getSendPort(),
+                                    toReceiver.getHandle().getSendPort(),
+                                    bufferSize - 1)))
+                    .getIOAction(exe).perform();
+            return Promise.<ChannelHandle<T>>newPromise(exe,
+                    new ChannelHandle<>(chIn.getHandle().getSendPort(),
+                            chOut.getHandle().getReceivePort()))
+                    .perform();
+        };
     }
 }
