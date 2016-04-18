@@ -17,7 +17,7 @@ public class BufferedChannelTest {
 
     @Before
     public void init() {
-        scheduledExecutorService = Executors.newScheduledThreadPool(2);
+        scheduledExecutorService = Executors.newScheduledThreadPool(10);
         ioActionExecutor = new IOActionExecutor(scheduledExecutorService);
     }
 
@@ -60,15 +60,7 @@ public class BufferedChannelTest {
         CompletableFuture<String> future2 = new CompletableFuture<>();
         CSP.<String>newChannel(2).bind(ch ->
                 ch.getSendPort().send("foo")
-                        .then(AsyncAction.wrap(() -> {
-                            System.out.println("sent foo: " + Thread.currentThread().getName());
-                            return null;
-                        }))
                         .then(ch.getSendPort().send("bar"))
-                        .then(AsyncAction.wrap(() -> {
-                            System.out.println("sent bar: " + Thread.currentThread().getName());
-                            return null;
-                        }))
                         .then(ch.getReceivePort().receive()
                                 .bind(x -> AsyncAction.wrap(() -> {
                                     future1.complete(x);

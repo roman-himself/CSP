@@ -150,7 +150,7 @@ class BufferedChannel {
                     if (sentFromBuffer) {
                         return result.then(middleProcessBody(ctx.senderBusy(true).receiverBusy(true).poll()));
                     } else {
-                        return result.then(middleProcessBody(ctx.senderBusy(false)));
+                        return result.then(middleProcessBody(ctx.senderBusy(false).receiverBusy(true)));
                     }
                 case RECEIVE:
                     if (ctx.isUnbuffered()) {
@@ -182,23 +182,20 @@ class BufferedChannel {
             Channel<IOEvent<T>> toMiddle = new UnbufferedChannel<>();
             Channel<T> toSender = new UnbufferedChannel<>();
             Channel<Void> toReceiver = new UnbufferedChannel<>();
-            AsyncAction.fork(
-                    inProcessBody(toMiddle.getHandle().getSendPort(),
-                            toReceiver.getHandle().getReceivePort(),
-                            chIn.getHandle().getReceivePort()))
+            inProcessBody(toMiddle.getHandle().getSendPort(),
+                    toReceiver.getHandle().getReceivePort(),
+                    chIn.getHandle().getReceivePort())
                     .getIOAction(exe).perform();
-            AsyncAction.fork(
-                    outProcessBody(toMiddle.getHandle().getSendPort(),
-                            toSender.getHandle().getReceivePort(),
-                            chOut.getHandle().getSendPort()))
+            outProcessBody(toMiddle.getHandle().getSendPort(),
+                    toSender.getHandle().getReceivePort(),
+                    chOut.getHandle().getSendPort())
                     .getIOAction(exe).perform();
-            AsyncAction.fork(
-                    middleProcessBody(
-                            new BufferProcessContext<>(
-                                    toMiddle.getHandle().getReceivePort(),
-                                    toSender.getHandle().getSendPort(),
-                                    toReceiver.getHandle().getSendPort(),
-                                    bufferSize - 1)))
+            middleProcessBody(
+                    new BufferProcessContext<>(
+                            toMiddle.getHandle().getReceivePort(),
+                            toSender.getHandle().getSendPort(),
+                            toReceiver.getHandle().getSendPort(),
+                            bufferSize - 1))
                     .getIOAction(exe).perform();
             return Promise.<ChannelHandle<T>>newPromise(exe,
                     new ChannelHandle<>(chIn.getHandle().getSendPort(),
