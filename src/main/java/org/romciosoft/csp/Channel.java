@@ -1,7 +1,6 @@
 package org.romciosoft.csp;
 
 import org.romciosoft.io.Promise;
-import org.romciosoft.monad.Maybe;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;

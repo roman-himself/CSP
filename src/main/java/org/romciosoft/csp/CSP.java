@@ -3,9 +3,6 @@ package org.romciosoft.csp;
 import org.romciosoft.io.AsyncAction;
 import org.romciosoft.io.IOActionExecutor;
 import org.romciosoft.io.Promise;
-import org.romciosoft.monad.Maybe;
-
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 

@@ -1,8 +1,5 @@
 package org.romciosoft.csp;
 
-import org.romciosoft.io.IOActionExecutor;
-import org.romciosoft.io.Promise;
-
 class SelectOption<T> {
     enum Type {
         SEND, RECEIVE

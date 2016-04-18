@@ -1,12 +1,7 @@
 package org.romciosoft.csp;
 
-import org.romciosoft.io.Promise;
-import org.romciosoft.monad.Maybe;
-
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class UnbufferedChannel<T> implements Channel<T> {
@@ -40,14 +35,14 @@ class UnbufferedChannel<T> implements Channel<T> {
             Token.MatchResult result;
             do {
                 result = Channel.Token.match(handle, value, token, rcvQueue.peek());
-                if (result.receiverWasDone) {
+                if (result.receiverWasDone || result.matched) {
                     rcvQueue.poll();
                 }
                 if (result.senderWasDone || result.matched) {
                     break;
                 }
             } while(!rcvQueue.isEmpty());
-            if (!result.matched) {
+            if (!result.matched && !result.senderWasDone) {
                 sndQueue.offer(SndQItem.of(token, value));
             }
             return result.matched;
@@ -68,14 +63,14 @@ class UnbufferedChannel<T> implements Channel<T> {
             do {
                 SndQItem<T> sndQItem = sndQueue.peek();
                 result = Channel.Token.match(handle, sndQItem.value, sndQItem.token, token);
-                if (result.senderWasDone) {
+                if (result.senderWasDone || result.matched) {
                     sndQueue.poll();
                 }
                 if (result.receiverWasDone || result.matched) {
                     break;
                 }
             } while(!sndQueue.isEmpty());
-            if (!result.matched) {
+            if (!result.matched && !result.receiverWasDone) {
                 rcvQueue.offer(token);
             }
             return result.matched;
