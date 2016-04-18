@@ -5,68 +5,83 @@ import org.romciosoft.monad.Maybe;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class UnbufferedChannel<T> implements Channel<T> {
     private static class SndQItem<T> {
-        Promise<SelectResult<T>> promise;
+        Channel.Token<T> token;
         T value;
 
-        static <T> SndQItem<T> of(Promise<SelectResult<T>> promise, T value) {
-            SndQItem<T> item = new SndQItem<>();
-            item.promise = promise;
-            item.value = value;
-            return item;
+        SndQItem(Channel.Token<T> token, T value) {
+            this.token = token;
+            this.value = value;
+        }
+
+        static <T> SndQItem<T> of(Channel.Token<T> token, T value) {
+            return new SndQItem<>(token, value);
         }
     }
 
     private ChannelHandle<T> handle = new ChannelHandle<>(this, this);
     private ReentrantLock lock = new ReentrantLock();
     private Queue<SndQItem<T>> sndQueue = new LinkedList<>();
-    private Queue<Promise<SelectResult<T>>> rcvQueue = new LinkedList<>();
+    private Queue<Channel.Token<T>> rcvQueue = new LinkedList<>();
 
     @Override
-    public void lock() {
-        lock.lock();
-    }
-
-    @Override
-    public void unlock() {
-        lock.unlock();
-    }
-
-    @Override
-    public boolean trySend(T value) throws Exception {
-        SelectResult<T> selectResult = SelectResult.received(getHandle().getReceivePort(), value);
-        while (!rcvQueue.isEmpty()) {
-            Promise<SelectResult<T>> promise = rcvQueue.poll();
-            if (promise.tryDeliver(selectResult).perform()) {
-                return true;
+    public boolean send(Token<T> token, T value) throws Exception {
+        try {
+            lock.lock();
+            if (rcvQueue.isEmpty()) {
+                sndQueue.offer(SndQItem.of(token, value));
+                return false;
             }
-        }
-        return false;
-    }
-
-    @Override
-    public Maybe<T> tryReceive() throws Exception {
-        SelectResult<T> selectResult = SelectResult.sent(getHandle().getSendPort());
-        while (!sndQueue.isEmpty()) {
-            SndQItem<T> sndQItem = sndQueue.poll();
-            if (sndQItem.promise.tryDeliver(selectResult).perform()) {
-                return Maybe.just(sndQItem.value);
+            Token.MatchResult result;
+            do {
+                result = Channel.Token.match(handle, value, token, rcvQueue.peek());
+                if (result.receiverWasDone) {
+                    rcvQueue.poll();
+                }
+                if (result.senderWasDone || result.matched) {
+                    break;
+                }
+            } while(!rcvQueue.isEmpty());
+            if (!result.matched) {
+                sndQueue.offer(SndQItem.of(token, value));
             }
+            return result.matched;
+        } finally {
+            lock.unlock();
         }
-        return Maybe.nothing();
     }
 
     @Override
-    public void offerSender(T value, Promise<SelectResult<T>> promise) {
-        sndQueue.offer(SndQItem.of(promise, value));
-    }
-
-    @Override
-    public void offerReceiver(Promise<SelectResult<T>> promise) {
-        rcvQueue.offer(promise);
+    public boolean receive(Token<T> token) throws Exception {
+        try {
+            lock.lock();
+            if (sndQueue.isEmpty()) {
+                rcvQueue.offer(token);
+                return false;
+            }
+            Token.MatchResult result;
+            do {
+                SndQItem<T> sndQItem = sndQueue.peek();
+                result = Channel.Token.match(handle, sndQItem.value, sndQItem.token, token);
+                if (result.senderWasDone) {
+                    sndQueue.poll();
+                }
+                if (result.receiverWasDone || result.matched) {
+                    break;
+                }
+            } while(!sndQueue.isEmpty());
+            if (!result.matched) {
+                rcvQueue.offer(token);
+            }
+            return result.matched;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -74,8 +89,4 @@ class UnbufferedChannel<T> implements Channel<T> {
         return handle;
     }
 
-    @Override
-    public int compareTo(Channel<T> o) {
-        return hashCode() - o.hashCode();
-    }
 }
