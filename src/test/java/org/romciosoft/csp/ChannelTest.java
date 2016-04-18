@@ -16,7 +16,7 @@ public class ChannelTest {
 
     @Before
     public void init() {
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        scheduledExecutorService = Executors.newScheduledThreadPool(10);
         ioActionExecutor = new IOActionExecutor(scheduledExecutorService);
     }
 
@@ -25,7 +25,7 @@ public class ChannelTest {
         scheduledExecutorService.shutdown();
     }
 
-    @Test()
+    @Test
     public void channelPassing() throws Exception {
         ChannelHandle<Integer> chHandle = new UnbufferedChannel<Integer>().getHandle();
         CompletableFuture<Integer> future = new CompletableFuture<>();
@@ -35,6 +35,21 @@ public class ChannelTest {
                             future.complete(x + 2);
                             return null;
                         }))).getIOAction(ioActionExecutor).perform();
+        assertEquals((Integer) 42, future.get());
+    }
+
+    @Test
+    public void receiveThenSend() throws Exception {
+        ChannelHandle<Integer> chHandle = new UnbufferedChannel<Integer>().getHandle();
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        AsyncAction.fork(chHandle.getReceivePort().receive().bind(x ->
+                AsyncAction.wrap(() -> {
+                    future.complete(x + 2);
+                    return null;
+                })))
+                .then(AsyncAction.delay(500, TimeUnit.MILLISECONDS))
+                .then(chHandle.getSendPort().send(40))
+                .getIOAction(ioActionExecutor).perform();
         assertEquals((Integer) 42, future.get());
     }
 
