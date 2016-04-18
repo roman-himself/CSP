@@ -2,6 +2,8 @@ package org.romciosoft.csp;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class UnbufferedChannel<T> implements Channel<T> {
