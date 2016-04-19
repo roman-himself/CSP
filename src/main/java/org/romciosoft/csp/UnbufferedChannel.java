@@ -8,15 +8,15 @@ import java.util.concurrent.locks.ReentrantLock;
 
 class UnbufferedChannel<T> implements Channel<T> {
     private static class SndQItem<T> {
-        Channel.Token<T> token;
+        SelectToken<T> token;
         T value;
 
-        SndQItem(Channel.Token<T> token, T value) {
+        SndQItem(SelectToken<T> token, T value) {
             this.token = token;
             this.value = value;
         }
 
-        static <T> SndQItem<T> of(Channel.Token<T> token, T value) {
+        static <T> SndQItem<T> of(SelectToken<T> token, T value) {
             return new SndQItem<>(token, value);
         }
     }
@@ -24,19 +24,19 @@ class UnbufferedChannel<T> implements Channel<T> {
     private ChannelHandle<T> handle = new ChannelHandle<>(this, this);
     private ReentrantLock lock = new ReentrantLock();
     private Queue<SndQItem<T>> sndQueue = new LinkedList<>();
-    private Queue<Channel.Token<T>> rcvQueue = new LinkedList<>();
+    private Queue<SelectToken<T>> rcvQueue = new LinkedList<>();
 
     @Override
-    public boolean send(Token<T> token, T value) throws Exception {
+    public boolean send(SelectToken<T> token, T value) throws Exception {
         try {
             lock.lock();
             if (rcvQueue.isEmpty()) {
                 sndQueue.offer(SndQItem.of(token, value));
                 return false;
             }
-            Token.MatchResult result;
+            SelectToken.MatchResult result;
             do {
-                result = Channel.Token.match(handle, value, token, rcvQueue.peek());
+                result = SelectToken.match(handle, value, token, rcvQueue.peek());
                 if (result.receiverWasDone || result.matched) {
                     rcvQueue.poll();
                 }
@@ -54,17 +54,17 @@ class UnbufferedChannel<T> implements Channel<T> {
     }
 
     @Override
-    public boolean receive(Token<T> token) throws Exception {
+    public boolean receive(SelectToken<T> token) throws Exception {
         try {
             lock.lock();
             if (sndQueue.isEmpty()) {
                 rcvQueue.offer(token);
                 return false;
             }
-            Token.MatchResult result;
+            SelectToken.MatchResult result;
             do {
                 SndQItem<T> sndQItem = sndQueue.peek();
-                result = Channel.Token.match(handle, sndQItem.value, sndQItem.token, token);
+                result = SelectToken.match(handle, sndQItem.value, sndQItem.token, token);
                 if (result.senderWasDone || result.matched) {
                     sndQueue.poll();
                 }

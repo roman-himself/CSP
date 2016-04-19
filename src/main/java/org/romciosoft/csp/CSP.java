@@ -12,7 +12,7 @@ public class CSP {
 
     static <T> Promise<SelectResult<T>> processSelect(IOActionExecutor executor, List<SelectOption<T>> selectOptions) throws Exception {
         Promise<SelectResult<T>> pro = Promise.<SelectResult<T>>newPromise(executor).perform();
-        Channel.Token<T> token = new Channel.Token<>(pro);
+        SelectToken<T> token = new SelectToken<>(pro);
         boolean madeIt = false;
         Iterator<SelectOption<T>> itr = selectOptions.iterator();
         while (!madeIt && itr.hasNext()) {
