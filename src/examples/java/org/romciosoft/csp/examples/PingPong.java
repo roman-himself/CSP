@@ -63,11 +63,13 @@ public class PingPong {
     }
 
     private static AsyncAction<Void> pongBody(ChannelHandle.ReceivePort<PingMessage> pingIn,
-                                              ChannelHandle.SendPort<PongMessage> pongOut) {
+                                              ChannelHandle.SendPort<PongMessage> pongOut,
+                                              CompletableFuture<Void> complete) {
         return pingIn.receive().bind(ping -> {
             if (ping.type == PingMessage.Type.FINISHED) {
                 return AsyncAction.wrap((IOAction<Void>) () -> {
                     System.out.println("received finish signal");
+                    complete.complete(null);
                     return null;
                 });
             }
@@ -76,22 +78,23 @@ public class PingPong {
                 return null;
             })
                     .then(pongOut.send(new PongMessage(ping.id)))
-                    .then(pongBody(pingIn, pongOut));
+                    .then(pongBody(pingIn, pongOut, complete));
         });
     }
 
-    private static AsyncAction<Void> pingPongBody(int howMany) {
+    private static AsyncAction<Void> pingPongBody(int howMany, CompletableFuture<Void> complete) {
         return CSP.<PingMessage>newChannel().bind(
                 pingChannel -> CSP.<PongMessage>newChannel().bind(
                         pongChannel ->
                                 AsyncAction.fork(pingBody(pingChannel.getSendPort(), pongChannel.getReceivePort(), howMany))
-                                        .then(AsyncAction.fork(pongBody(pingChannel.getReceivePort(), pongChannel.getSendPort())))));
+                                        .then(AsyncAction.fork(pongBody(pingChannel.getReceivePort(), pongChannel.getSendPort(), complete)))));
     }
 
     public static void main(String[] args) throws Exception {
+        CompletableFuture<Void> complete = new CompletableFuture<>();
         ScheduledExecutorService schSvc = Executors.newScheduledThreadPool(10);
-        pingPongBody(10).getIOAction(new IOActionExecutor(schSvc)).perform();
-        Thread.sleep(1000);
+        pingPongBody(10, complete).getIOAction(new IOActionExecutor(schSvc)).perform();
+        complete.get();
         schSvc.shutdown();
     }
 }
