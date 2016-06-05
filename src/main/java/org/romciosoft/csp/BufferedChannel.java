@@ -65,9 +65,9 @@ class BufferedChannel {
         }
         return select.build().bind(result -> {
             switch (result.getType()) {
-                case SEND:
+                case SENT:
                     return bufferProcessBody(ctx.poll());
-                case RECEIVE:
+                case RECEIVED:
                     return bufferProcessBody(ctx.offer(result.getReceivedValue()));
                 default:
                     throw new AssertionError();

@@ -2,7 +2,7 @@ package org.romciosoft.csp;
 
 public class SelectResult<T> {
     public enum Type {
-        SEND, RECEIVE
+        SENT, RECEIVED
     }
 
     private Type type;
@@ -19,11 +19,11 @@ public class SelectResult<T> {
     }
 
     static <T> SelectResult<T> sent(ChannelHandle.SendPort<T> sendPort) {
-        return new SelectResult<>(Type.SEND, null, sendPort, null);
+        return new SelectResult<>(Type.SENT, null, sendPort, null);
     }
 
     static <T> SelectResult<T> received(ChannelHandle.ReceivePort<T> receivePort, T value) {
-        return new SelectResult<>(Type.RECEIVE, value, null, receivePort);
+        return new SelectResult<>(Type.RECEIVED, value, null, receivePort);
     }
 
     public Type getType() {
@@ -31,21 +31,21 @@ public class SelectResult<T> {
     }
 
     public ChannelHandle.SendPort<T> getSendPort() {
-        if (type != Type.SEND) {
+        if (type != Type.SENT) {
             throw new IllegalAccessError();
         }
         return sendPort;
     }
 
     public ChannelHandle.ReceivePort<T> getReceivePort() {
-        if (type != Type.RECEIVE) {
+        if (type != Type.RECEIVED) {
             throw new IllegalAccessError();
         }
         return receivePort;
     }
 
     public T getReceivedValue() {
-        if (type != Type.RECEIVE) {
+        if (type != Type.RECEIVED) {
             throw new IllegalAccessError();
         }
         return value;
