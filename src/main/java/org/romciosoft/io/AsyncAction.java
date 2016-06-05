@@ -26,7 +26,7 @@ public interface AsyncAction<T> extends Monad<AsyncAction<?>, T> {
     }
 
     static <T> AsyncAction<T> wrap(IOAction<T> ioAction) {
-        return exe -> ioAction.bind(result -> Promise.newPromise(exe, result));
+        return exe -> Promise.<T>newPromise(exe).bind(pro -> exe.submit(ioAction.bind(pro::deliver)).then(IOAction.unit(pro)));
     }
 
     static <T> AsyncAction<T> unit(T value) {
