@@ -125,8 +125,8 @@ So, meet `IOAction<T>`:
 
 It is also a Monad, meaning it supports `bind` with a function of its result producing an explicit continuation. So for example, running:
 
-	IOAction.<String>unit("World").bind(
-	  x -> () -> {
+	IOAction.unit("World").bind(
+	  x -> (IOAction<Void>) () -> {
 	    System.out.println("Hello " + x + '!');
 	    return null;
 	  }).perform();
