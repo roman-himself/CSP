@@ -214,3 +214,16 @@ It is actually short enough to quote it here entirely and let it speak for itsel
 
 At this point it is hopefully becoming clear why we needed all those monads, io actions and promises to make a system that's all about processes and channels. Recall from the section on concurrency model that a process sending on a channel is blocked until another one receives on that channel (the reverse is obviously also true). An `AsyncAction` is effectively "blocked", ie. its continuation is unable to proceed, until the `Promise` yielded from its `IOAction` is delivered.
 A channel object therefore acts as a meeting point, containing queues for the promises of sending and receiving processes and matching senders with receivers as they become available.
+
+## Channel API ##
+### CSP ###
+`CSP` contains static methods that act as the entry point to everything channel:
+* `static <T> AsyncAction<ChannelHandle<T>> newChannel(int bufferSize)` -- returns an `AsyncAction` that yields the handle to a newly created typed channel with the given buffer size. Will throw an `IllegalArgumentException` if `bufferSize` is negative.
+* `static <T> AsyncAction<ChannelHandle<T>> newChannel()` -- delegates to `newChannel(0)`.
+* `static <T> SelectBuilder<T> select()` -- returns a new `SelectBuilder` for specifying operations for readiness selection.
+
+### SelectBuilder ###
+`SelectBuilder<T>` accumulates a list of possible operations to perform on channels once any of them are available:
+* `SelectBuilder<T> send(ChannelHandle.SendPort<T> sendPort, T value)` -- adds a send operation on the specified channel, returns `this`.
+* `SelectBuilder<T> receive(ChannelHandle.ReceivePort<T> receivePort)` -- adds a receive operation, returns `this`.
+* `AsyncAction<SelectResult<T>> build()` -- returns an `AsyncAction` that yields the result of readiness selection from previously specified possible operations.
