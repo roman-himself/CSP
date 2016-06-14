@@ -32,21 +32,21 @@ public class SelectResult<T> {
 
     public ChannelHandle.SendPort<T> getSendPort() {
         if (type != Type.SENT) {
-            throw new IllegalAccessError();
+            throw new IllegalAccessError("cannot get send port on RECEIVED select result");
         }
         return sendPort;
     }
 
     public ChannelHandle.ReceivePort<T> getReceivePort() {
         if (type != Type.RECEIVED) {
-            throw new IllegalAccessError();
+            throw new IllegalAccessError("cannot get receive port on SENT select result");
         }
         return receivePort;
     }
 
     public T getReceivedValue() {
         if (type != Type.RECEIVED) {
-            throw new IllegalAccessError();
+            throw new IllegalAccessError("cannot get received value on SENT select result");
         }
         return value;
     }

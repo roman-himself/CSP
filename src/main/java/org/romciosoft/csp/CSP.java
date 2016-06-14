@@ -36,6 +36,9 @@ public class CSP {
     }
 
     public static <T> AsyncAction<ChannelHandle<T>> newChannel(int bufferSize) {
+        if (bufferSize < 0) {
+            throw new IllegalArgumentException("negative buffer size");
+        }
         if (bufferSize == 0) {
             return AsyncAction.unit(new UnbufferedChannel<T>().getHandle());
         }

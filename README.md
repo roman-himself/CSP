@@ -196,7 +196,7 @@ It is actually short enough to quote it here entirely and let it speak for itsel
 	    }
 
 	    static <T> AsyncAction<T> wrap(IOAction<T> ioAction) {
-	        return exe -> ioAction.bind(result -> Promise.newPromise(exe, result));
+            return exe -> Promise.<T>newPromise(exe).bind(pro -> exe.submit(ioAction.bind(pro::deliver)).then(IOAction.unit(pro)));
 	    }
 
 	    static <T> AsyncAction<T> unit(T value) {
@@ -227,3 +227,13 @@ A channel object therefore acts as a meeting point, containing queues for the pr
 * `SelectBuilder<T> send(ChannelHandle.SendPort<T> sendPort, T value)` -- adds a send operation on the specified channel, returns `this`.
 * `SelectBuilder<T> receive(ChannelHandle.ReceivePort<T> receivePort)` -- adds a receive operation, returns `this`.
 * `AsyncAction<SelectResult<T>> build()` -- returns an `AsyncAction` that yields the result of readiness selection from previously specified possible operations.
+
+### SelectResult ###
+Intuitively enough, `SelectResult<T>` represents the result of a select:
+* `SelectResult.Type getType()` -- `SENT` or `RECEIVED`.
+* `ChannelHandle.SendPort<T> getSendPort()` -- if `getType() == SENT`, returns the `SendPort` on which sending a message succeeded, otherwise throws `IllegalAccessError`
+* `ChannelHandle.ReceivePort<T> getReceivePort()` -- if `getType() == RECEIVED` returns the `ReceivePort` on which the message was received, otherwise throws `IllegalAccessError`.
+* `T getReceivedValue()` -- if `getType() == RECEIVED` returns the value received by the select, otherwise throws `IllegalAccessError`
+
+### ChannelHandle ###
+A `ChannelHandle<T>` is obtained from `CSP.<T>newChannel()` and consists of one `ChannelHandle.SendPort<T>` and one `ChannelHandle.ReceivePort<T>`, which go into `SelectBuilder`'s methods. Additionally, `SendPort` and `ReceivePort` have `send(T value)` and `receive()` methods which are shorthand forms for appropriate selects.
