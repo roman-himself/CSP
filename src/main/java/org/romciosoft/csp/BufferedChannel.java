@@ -56,7 +56,7 @@ class BufferedChannel {
     }
 
     private static <T> AsyncAction<Void> bufferProcessBody(BufferProcessContext<T> ctx) {
-        SelectBuilder2<Void> select = CSP.select();
+        SelectBuilder<Void> select = CSP.select();
         if (!ctx.isFull()) {
             select.receive(ctx.from, rcved -> bufferProcessBody(ctx.offer(rcved)));
         }

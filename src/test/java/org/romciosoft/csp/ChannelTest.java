@@ -63,6 +63,6 @@ public class ChannelTest {
                             future.complete(x + 2);
                             return null;
                         }))).getIOAction(ioActionExecutor).perform();
-        future.get(500, TimeUnit.MILLISECONDS);
+        future.get(200, TimeUnit.MILLISECONDS);
     }
 }

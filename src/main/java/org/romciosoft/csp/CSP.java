@@ -31,8 +31,8 @@ public class CSP {
         return pro;
     }
 
-    public static <T> SelectBuilder2<T> select() {
-        return new SelectBuilder2<>();
+    public static <T> SelectBuilder<T> select() {
+        return new SelectBuilder<>();
     }
 
     public static <T> AsyncAction<ChannelHandle<T>> newChannel(int bufferSize) {

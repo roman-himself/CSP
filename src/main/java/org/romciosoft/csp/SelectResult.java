@@ -1,6 +1,6 @@
 package org.romciosoft.csp;
 
-public class SelectResult<T> {
+class SelectResult<T> {
     public enum Type {
         SENT, RECEIVED
     }
