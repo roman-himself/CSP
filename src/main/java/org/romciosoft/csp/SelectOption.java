@@ -1,7 +1,5 @@
 package org.romciosoft.csp;
 
-import org.romciosoft.io.IOActionExecutor;
-import org.romciosoft.io.Promise;
 
 class SelectOption<T> {
     enum Type {
@@ -9,26 +7,26 @@ class SelectOption<T> {
     }
 
     Type type;
-    ChannelHandle.SendPort<T> sendPort;
-    ChannelHandle.ReceivePort<T> rcvPort;
+    ChannelHandle.SendPort<? extends T> sendPort;
+    ChannelHandle.ReceivePort<? extends T> rcvPort;
     T value;
 
-    private SelectOption(Type type, ChannelHandle.SendPort<T> sendPort, ChannelHandle.ReceivePort<T> rcvPort, T value) {
+    private SelectOption(Type type, ChannelHandle.SendPort<? extends T> sendPort, ChannelHandle.ReceivePort<? extends T> rcvPort, T value) {
         this.type = type;
         this.sendPort = sendPort;
         this.rcvPort = rcvPort;
         this.value = value;
     }
 
-    static <T> SelectOption<T> send(ChannelHandle.SendPort<T> port, T value) {
+    static <T> SelectOption<T> send(ChannelHandle.SendPort<? extends T> port, T value) {
         return new SelectOption<>(Type.SEND, port, null, value);
     }
 
-    static <T> SelectOption<T> receive(ChannelHandle.ReceivePort<T> port) {
+    static <T> SelectOption<T> receive(ChannelHandle.ReceivePort<? extends T> port) {
         return new SelectOption<>(Type.RECEIVE, null, port, null);
     }
 
-    Channel<T> getChannel() {
+    Channel<? extends T> getChannel() {
         switch (type) {
             case SEND:
                 return sendPort.channel;

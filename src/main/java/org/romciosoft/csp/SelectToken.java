@@ -31,7 +31,7 @@ class SelectToken<T> {
         id = COUNTER.incrementAndGet();
     }
 
-    private static <T> void lockBoth(SelectToken<T> one, SelectToken<T> two) {
+    private static <T> void lockBoth(SelectToken<? extends T> one, SelectToken<? extends T> two) {
         if (one.id < two.id) {
             one.lock.lock();
             two.lock.lock();
@@ -41,7 +41,7 @@ class SelectToken<T> {
         }
     }
 
-    private static <T> void unlockBoth(SelectToken<T> one, SelectToken<T> two) {
+    private static <T> void unlockBoth(SelectToken<? extends T> one, SelectToken<? extends T> two) {
         if (one.id < two.id) {
             one.lock.unlock();
             two.lock.unlock();
@@ -51,7 +51,7 @@ class SelectToken<T> {
         }
     }
 
-    static <T> MatchResult match(ChannelHandle<T> handle, T value, SelectToken<T> sender, SelectToken<T> receiver) throws Exception {
+    static <T> MatchResult match(ChannelHandle<? extends T> handle, T value, SelectToken<T> sender, SelectToken<T> receiver) throws Exception {
         try {
             lockBoth(sender, receiver);
             if (sender.done ^ receiver.done) {
@@ -63,7 +63,8 @@ class SelectToken<T> {
             } else if (sender.done && receiver.done) {
                 return new MatchResult(false, true, true);
             }
-            sender.promise.deliver(SelectResult.sent(handle.getSendPort())).perform();
+            SelectResult<T> res = SelectResult.sent(handle.getSendPort());
+            sender.promise.deliver(res).perform();
             receiver.promise.deliver(SelectResult.received(handle.getReceivePort(), value)).perform();
             sender.done = true;
             receiver.done = true;

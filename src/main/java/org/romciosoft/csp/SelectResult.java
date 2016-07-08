@@ -7,22 +7,22 @@ public class SelectResult<T> {
 
     private Type type;
     private T value;
-    private ChannelHandle.SendPort<T> sendPort;
-    private ChannelHandle.ReceivePort<T> receivePort;
+    private ChannelHandle.SendPort<? extends T> sendPort;
+    private ChannelHandle.ReceivePort<? extends T> receivePort;
 
 
-    private SelectResult(Type type, T value, ChannelHandle.SendPort<T> sendPort, ChannelHandle.ReceivePort<T> receivePort) {
+    private SelectResult(Type type, T value, ChannelHandle.SendPort<? extends T> sendPort, ChannelHandle.ReceivePort<? extends T> receivePort) {
         this.type = type;
         this.value = value;
         this.sendPort = sendPort;
         this.receivePort = receivePort;
     }
 
-    static <T> SelectResult<T> sent(ChannelHandle.SendPort<T> sendPort) {
+    static <T> SelectResult<T> sent(ChannelHandle.SendPort<? extends T> sendPort) {
         return new SelectResult<>(Type.SENT, null, sendPort, null);
     }
 
-    static <T> SelectResult<T> received(ChannelHandle.ReceivePort<T> receivePort, T value) {
+    static <T> SelectResult<T> received(ChannelHandle.ReceivePort<? extends T> receivePort, T value) {
         return new SelectResult<>(Type.RECEIVED, value, null, receivePort);
     }
 
@@ -30,14 +30,14 @@ public class SelectResult<T> {
         return type;
     }
 
-    public ChannelHandle.SendPort<T> getSendPort() {
+    public ChannelHandle.SendPort<? extends T> getSendPort() {
         if (type != Type.SENT) {
             throw new IllegalAccessError("cannot get send port on RECEIVED select result");
         }
         return sendPort;
     }
 
-    public ChannelHandle.ReceivePort<T> getReceivePort() {
+    public ChannelHandle.ReceivePort<? extends T> getReceivePort() {
         if (type != Type.RECEIVED) {
             throw new IllegalAccessError("cannot get receive port on SENT select result");
         }

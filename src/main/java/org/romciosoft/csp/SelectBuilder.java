@@ -6,17 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SelectBuilder<T> {
-    List<SelectOption<T>> options = new ArrayList<>();
+    List<SelectOption<? extends T>> options = new ArrayList<>();
 
     SelectBuilder() {
     }
 
-    public SelectBuilder<T> send(ChannelHandle.SendPort<T> sendPort, T value) {
+    public SelectBuilder<T> send(ChannelHandle.SendPort<? extends T> sendPort, T value) {
         options.add(SelectOption.send(sendPort, value));
         return this;
     }
 
-    public SelectBuilder<T> receive(ChannelHandle.ReceivePort<T> receivePort) {
+    public SelectBuilder<T> receive(ChannelHandle.ReceivePort<? extends T> receivePort) {
         options.add(SelectOption.receive(receivePort));
         return this;
     }

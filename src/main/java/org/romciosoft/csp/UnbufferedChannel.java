@@ -6,26 +6,26 @@ import java.util.concurrent.locks.ReentrantLock;
 
 class UnbufferedChannel<T> implements Channel<T> {
     private static class SndQItem<T> {
-        SelectToken<T> token;
+        SelectToken<? extends T> token;
         T value;
 
-        SndQItem(SelectToken<T> token, T value) {
+        SndQItem(SelectToken<? extends T> token, T value) {
             this.token = token;
             this.value = value;
         }
 
-        static <T> SndQItem<T> of(SelectToken<T> token, T value) {
+        static <T> SndQItem<T> of(SelectToken<? extends T> token, T value) {
             return new SndQItem<>(token, value);
         }
     }
 
     private ChannelHandle<T> handle = new ChannelHandle<>(this, this);
     private ReentrantLock lock = new ReentrantLock();
-    private Queue<SndQItem<T>> sndQueue = new LinkedList<>();
-    private Queue<SelectToken<T>> rcvQueue = new LinkedList<>();
+    private Queue<SndQItem<? extends T>> sndQueue = new LinkedList<>();
+    private Queue<SelectToken<? extends T>> rcvQueue = new LinkedList<>();
 
     @Override
-    public boolean send(SelectToken<T> token, T value) throws Exception {
+    public boolean send(SelectToken<? extends T> token, T value) throws Exception {
         try {
             lock.lock();
             if (rcvQueue.isEmpty()) {
@@ -34,7 +34,7 @@ class UnbufferedChannel<T> implements Channel<T> {
             }
             SelectToken.MatchResult result;
             do {
-                result = SelectToken.match(handle, value, token, rcvQueue.peek());
+                result = SelectToken.match(handle, value, (SelectToken<T>) token, (SelectToken<T>) rcvQueue.peek());
                 if (result.receiverWasDone || result.matched) {
                     rcvQueue.poll();
                 }
@@ -52,7 +52,7 @@ class UnbufferedChannel<T> implements Channel<T> {
     }
 
     @Override
-    public boolean receive(SelectToken<T> token) throws Exception {
+    public boolean receive(SelectToken<? extends T> token) throws Exception {
         try {
             lock.lock();
             if (sndQueue.isEmpty()) {
@@ -61,8 +61,8 @@ class UnbufferedChannel<T> implements Channel<T> {
             }
             SelectToken.MatchResult result;
             do {
-                SndQItem<T> sndQItem = sndQueue.peek();
-                result = SelectToken.match(handle, sndQItem.value, sndQItem.token, token);
+                SndQItem<? extends T> sndQItem = sndQueue.peek();
+                result = SelectToken.match(handle, sndQItem.value, (SelectToken<T>) sndQItem.token, (SelectToken<T>) token);
                 if (result.senderWasDone || result.matched) {
                     sndQueue.poll();
                 }

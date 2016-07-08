@@ -10,19 +10,19 @@ public class CSP {
     private CSP() {
     }
 
-    static <T> Promise<SelectResult<T>> processSelect(IOActionExecutor executor, List<SelectOption<T>> selectOptions) throws Exception {
+    static <T> Promise<SelectResult<T>> processSelect(IOActionExecutor executor, List<SelectOption<? extends T>> selectOptions) throws Exception {
         Promise<SelectResult<T>> pro = Promise.<SelectResult<T>>newPromise(executor).perform();
         SelectToken<T> token = new SelectToken<>(pro);
         boolean madeIt = false;
-        Iterator<SelectOption<T>> itr = selectOptions.iterator();
+        Iterator<SelectOption<? extends T>> itr = selectOptions.iterator();
         while (!madeIt && itr.hasNext()) {
-            SelectOption<T> option = itr.next();
+            SelectOption<? extends T> option = itr.next();
             switch (option.type) {
                 case SEND:
-                    madeIt = option.getChannel().send(token, option.value);
+                    madeIt = ((Channel<T>) option.getChannel()).send(token, option.value);
                     break;
                 case RECEIVE:
-                    madeIt = option.getChannel().receive(token);
+                    madeIt = ((Channel<T>) option.getChannel()).receive(token);
                     break;
                 default:
                     throw new AssertionError();
