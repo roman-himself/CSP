@@ -56,23 +56,14 @@ class BufferedChannel {
     }
 
     private static <T> AsyncAction<Void> bufferProcessBody(BufferProcessContext<T> ctx) {
-        SelectBuilder<T> select = CSP.select();
+        SelectBuilder2<Void> select = CSP.select();
         if (!ctx.isFull()) {
-            select.receive(ctx.from);
+            select.receive(ctx.from, rcved -> bufferProcessBody(ctx.offer(rcved)));
         }
         if (!ctx.isEmpty()) {
-            select.send(ctx.to, ctx.peek());
+            select.send(ctx.to, ctx.peek(), () -> bufferProcessBody(ctx.poll()));
         }
-        return select.build().bind(result -> {
-            switch (result.getType()) {
-                case SENT:
-                    return bufferProcessBody(ctx.poll());
-                case RECEIVED:
-                    return bufferProcessBody(ctx.offer(result.getReceivedValue()));
-                default:
-                    throw new AssertionError();
-            }
-        });
+        return select.build();
     }
 
     static <T> AsyncAction<ChannelHandle<T>> bufferedChannel(int bufferSize) {

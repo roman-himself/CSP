@@ -11,7 +11,7 @@ public class ChannelHandle<T> {
         }
 
         public AsyncAction<Void> send(T value) {
-            return CSP.<T>select().send(this, value).build().then(AsyncAction.unit(null));
+            return CSP.<Void>select().send(this, value, AsyncAction.unit(null)).build();
         }
     }
 
@@ -23,7 +23,7 @@ public class ChannelHandle<T> {
         }
 
         public AsyncAction<T> receive() {
-            return CSP.<T>select().receive(this).build().bind(result -> AsyncAction.unit(result.getReceivedValue()));
+            return CSP.<T>select().receive(this, AsyncAction::unit).build();
         }
     }
 
